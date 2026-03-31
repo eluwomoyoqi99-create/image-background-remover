@@ -1,9 +1,15 @@
 'use client';
 
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useEffect } from 'react';
 import { ReactCompareSlider, ReactCompareSliderImage } from 'react-compare-slider';
 
 type State = 'idle' | 'loading' | 'done' | 'error';
+
+interface User {
+  email: string;
+  name: string;
+  avatar_url: string;
+}
 
 export default function Home() {
   const [state, setState] = useState<State>('idle');
@@ -11,6 +17,30 @@ export default function Home() {
   const [resultUrl, setResultUrl] = useState<string | null>(null);
   const [errorMsg, setErrorMsg] = useState('');
   const [isDragging, setIsDragging] = useState(false);
+  const [user, setUser] = useState<User | null>(null);
+
+  useEffect(() => {
+    const savedUser = localStorage.getItem('user');
+    if (savedUser) {
+      setUser(JSON.parse(savedUser));
+    }
+
+    // @ts-ignore
+    window.handleCredentialResponse = async (response: any) => {
+      try {
+        const res = await fetch('https://google-auth-worker.eluwomoyoqi99.workers.dev/auth/google', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ token: response.credential })
+        });
+        const data = await res.json();
+        setUser(data.user);
+        localStorage.setItem('user', JSON.stringify(data.user));
+      } catch (err) {
+        console.error('Login failed:', err);
+      }
+    };
+  }, []);
 
   const processFile = async (file: File) => {
     if (!file.type.match(/image\/(jpeg|png|webp)/)) {
@@ -92,16 +122,45 @@ export default function Home() {
     <div className="min-h-screen bg-gray-50 flex flex-col">
       {/* Header */}
       <header className="bg-white border-b border-gray-200 py-4 px-6">
-        <div className="max-w-4xl mx-auto flex items-center gap-3">
-          <div className="w-8 h-8 bg-indigo-600 rounded-lg flex items-center justify-center">
-            <svg className="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
-            </svg>
+        <div className="max-w-4xl mx-auto flex items-center justify-between">
+          <div className="flex items-center gap-3">
+            <div className="w-8 h-8 bg-indigo-600 rounded-lg flex items-center justify-center">
+              <svg className="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
+              </svg>
+            </div>
+            <div>
+              <h1 className="text-lg font-bold text-gray-900">RemoveBG</h1>
+              <p className="text-xs text-gray-500">Free Image Background Remover</p>
+            </div>
           </div>
-          <div>
-            <h1 className="text-lg font-bold text-gray-900">RemoveBG</h1>
-            <p className="text-xs text-gray-500">Free Image Background Remover</p>
-          </div>
+          
+          {user ? (
+            <div className="flex items-center gap-3">
+              <img src={user.avatar_url} alt={user.name} className="w-8 h-8 rounded-full" />
+              <div className="text-sm">
+                <p className="font-medium text-gray-900">{user.name}</p>
+                <p className="text-xs text-gray-500">{user.email}</p>
+              </div>
+              <button
+                onClick={() => {
+                  setUser(null);
+                  localStorage.removeItem('user');
+                }}
+                className="ml-2 text-sm text-gray-500 hover:text-gray-700"
+              >
+                Logout
+              </button>
+            </div>
+          ) : (
+            <div
+              id="g_id_onload"
+              data-client_id="2499385941-d0lqohapi97ug5pdel4hq996e4d2a34k.apps.googleusercontent.com"
+              data-callback="handleCredentialResponse"
+            >
+              <div className="g_id_signin" data-type="standard" data-size="medium"></div>
+            </div>
+          )}
         </div>
       </header>
 
