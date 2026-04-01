@@ -146,11 +146,16 @@ export default function Home() {
           
           {user ? (
             <div className="flex items-center gap-3">
-              <img src={user.avatar_url} alt={user.name} className="w-8 h-8 rounded-full" />
-              <div className="text-sm">
-                <p className="font-medium text-gray-900">{user.name}</p>
-                <p className="text-xs text-gray-500">{user.email}</p>
-              </div>
+              <button
+                onClick={() => window.location.href = '/profile'}
+                className="flex items-center gap-3 hover:bg-gray-50 rounded-lg p-2 transition-colors"
+              >
+                <img src={user.avatar_url} alt={user.name} className="w-8 h-8 rounded-full" />
+                <div className="text-sm text-left">
+                  <p className="font-medium text-gray-900">{user.name}</p>
+                  <p className="text-xs text-gray-500">View Profile</p>
+                </div>
+              </button>
               <button
                 onClick={() => {
                   setUser(null);
