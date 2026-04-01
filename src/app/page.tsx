@@ -132,6 +132,10 @@ export default function Home() {
       {/* Header */}
       <header className="bg-white border-b border-gray-200 py-4 px-6">
         <div className="max-w-4xl mx-auto flex items-center justify-between">
+          <nav className="hidden md:flex items-center gap-6 ml-auto mr-6">
+            <a href="/pricing" className="text-sm text-gray-600 hover:text-gray-900">定价</a>
+            <a href="/faq" className="text-sm text-gray-600 hover:text-gray-900">FAQ</a>
+          </nav>
           <div className="flex items-center gap-3">
             <div className="w-8 h-8 bg-indigo-600 rounded-lg flex items-center justify-center">
               <svg className="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -180,6 +184,24 @@ export default function Home() {
 
       {/* Main */}
       <main className="flex-1 max-w-4xl mx-auto w-full px-4 py-12">
+        {/* Upgrade Banner */}
+        {user && (
+          <div className="bg-gradient-to-r from-indigo-600 to-purple-600 rounded-2xl p-6 mb-8 text-white">
+            <div className="flex items-center justify-between">
+              <div>
+                <h3 className="text-xl font-bold mb-1">🎉 升级 Pro 享受无限次数</h3>
+                <p className="text-indigo-100">4K 高清 + 无水印 + 批量处理，首月仅需 $4.99</p>
+              </div>
+              <a
+                href="/pricing"
+                className="bg-white text-indigo-600 px-6 py-3 rounded-xl font-semibold hover:bg-gray-100 transition-colors whitespace-nowrap"
+              >
+                立即升级
+              </a>
+            </div>
+          </div>
+        )}
+
         <div className="text-center mb-10">
           <h2 className="text-4xl font-extrabold text-gray-900 mb-3">
             Remove Image Background
