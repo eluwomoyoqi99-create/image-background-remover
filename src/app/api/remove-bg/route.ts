@@ -37,12 +37,20 @@ export async function POST(req: NextRequest) {
 
     const apiKey = process.env.REMOVE_BG_API_KEY;
     if (!apiKey) {
+      console.error('[remove-bg] REMOVE_BG_API_KEY is not set');
       return NextResponse.json({ error: 'API key not configured' }, { status: 500 });
     }
 
+    // Convert file to ArrayBuffer for Edge Runtime compatibility
+    const fileBuffer = await file.arrayBuffer();
+    const fileBytes = new Uint8Array(fileBuffer);
+
     const form = new FormData();
-    form.append('image_file', file);
+    const blob = new Blob([fileBytes], { type: file.type });
+    form.append('image_file', blob, file.name || 'image.png');
     form.append('size', 'auto');
+
+    console.log('[remove-bg] Calling Remove.bg API, file size:', fileBytes.length);
 
     const response = await fetch('https://api.remove.bg/v1.0/removebg', {
       method: 'POST',
@@ -54,9 +62,9 @@ export async function POST(req: NextRequest) {
 
     if (!response.ok) {
       const errorText = await response.text();
-      console.error('Remove.bg error:', errorText);
+      console.error('[remove-bg] Remove.bg API error:', response.status, errorText);
       return NextResponse.json(
-        { error: 'Background removal failed. Please try again.' },
+        { error: `Background removal failed (${response.status}). ${errorText}` },
         { status: 500 }
       );
     }
@@ -83,7 +91,10 @@ export async function POST(req: NextRequest) {
 
     return res;
   } catch (error) {
-    console.error('Error:', error);
-    return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
+    console.error('[remove-bg] Unexpected error:', error);
+    return NextResponse.json(
+      { error: `Internal server error: ${error instanceof Error ? error.message : String(error)}` },
+      { status: 500 }
+    );
   }
 }
