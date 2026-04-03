@@ -146,8 +146,19 @@ export default function Home() {
       }
 
       if (!res.ok) {
-        const data = await res.json();
-        throw new Error(data.error || 'Processing failed');
+        // Safely parse error — response may not be JSON
+        let errMsg = 'Processing failed';
+        try {
+          const contentType = res.headers.get('content-type') || '';
+          if (contentType.includes('application/json')) {
+            const data = await res.json();
+            errMsg = data.error || errMsg;
+          } else {
+            const text = await res.text();
+            if (text) errMsg = text;
+          }
+        } catch {}
+        throw new Error(errMsg);
       }
 
       // Update guest local counter
