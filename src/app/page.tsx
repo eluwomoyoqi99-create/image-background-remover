@@ -131,7 +131,7 @@ export default function Home() {
         headers['x-user-email'] = user.email;
       }
 
-      const res = await fetch('/api/remove-bg', {
+      const res = await fetch('https://remove-bg-worker.eluwomoyoqi99.workers.dev', {
         method: 'POST',
         headers,
         body: form,
