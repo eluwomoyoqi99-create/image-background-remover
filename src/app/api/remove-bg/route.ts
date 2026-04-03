@@ -1,9 +1,44 @@
-export const runtime = 'edge';
-
 import { NextRequest, NextResponse } from 'next/server';
+import { db } from '@/lib/db';
+
+const GUEST_DAILY_LIMIT = 3;
+
+function getTodayCookieKey(): string {
+  const d = new Date();
+  const y = d.getUTCFullYear();
+  const m = String(d.getUTCMonth() + 1).padStart(2, '0');
+  const day = String(d.getUTCDate()).padStart(2, '0');
+  return `guest_usage_${y}${m}${day}`;
+}
 
 export async function POST(req: NextRequest) {
   try {
+    // --- Usage limit check ---
+    const userEmail = req.headers.get('x-user-email');
+    const cookieKey = getTodayCookieKey();
+
+    if (userEmail) {
+      // Logged-in user
+      const check = db.canUseService(userEmail);
+      if (!check.allowed) {
+        return NextResponse.json(
+          { error: 'daily_limit_reached', remaining: 0, limit: check.limit },
+          { status: 429 }
+        );
+      }
+    } else {
+      // Guest user — check cookie
+      const cookieVal = req.cookies.get(cookieKey)?.value;
+      const guestCount = cookieVal ? parseInt(cookieVal, 10) : 0;
+      if (guestCount >= GUEST_DAILY_LIMIT) {
+        return NextResponse.json(
+          { error: 'daily_limit_reached', remaining: 0, limit: GUEST_DAILY_LIMIT },
+          { status: 429 }
+        );
+      }
+    }
+
+    // --- Process image ---
     const formData = await req.formData();
     const file = formData.get('image') as File;
 
@@ -38,12 +73,42 @@ export async function POST(req: NextRequest) {
     }
 
     const buffer = await response.arrayBuffer();
-    return new NextResponse(buffer, {
-      headers: {
-        'Content-Type': 'image/png',
-        'Content-Disposition': 'attachment; filename="removed-bg.png"',
-      },
-    });
+
+    // --- Update usage counters after successful call ---
+    if (userEmail) {
+      db.updateUsage(userEmail);
+      const updated = db.canUseService(userEmail);
+      const res = new NextResponse(buffer, {
+        headers: {
+          'Content-Type': 'image/png',
+          'Content-Disposition': 'attachment; filename="removed-bg.png"',
+          'X-Usage-Remaining': String(updated.remaining),
+          'X-Usage-Limit': String(updated.limit),
+        },
+      });
+      return res;
+    } else {
+      // Increment guest cookie
+      const cookieVal = req.cookies.get(cookieKey)?.value;
+      const guestCount = cookieVal ? parseInt(cookieVal, 10) : 0;
+      const newCount = guestCount + 1;
+      const remaining = Math.max(0, GUEST_DAILY_LIMIT - newCount);
+
+      const res = new NextResponse(buffer, {
+        headers: {
+          'Content-Type': 'image/png',
+          'Content-Disposition': 'attachment; filename="removed-bg.png"',
+          'X-Usage-Remaining': String(remaining),
+          'X-Usage-Limit': String(GUEST_DAILY_LIMIT),
+        },
+      });
+      res.cookies.set(cookieKey, String(newCount), {
+        maxAge: 86400,
+        httpOnly: false,
+        path: '/',
+      });
+      return res;
+    }
   } catch (error) {
     console.error('Error:', error);
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 });

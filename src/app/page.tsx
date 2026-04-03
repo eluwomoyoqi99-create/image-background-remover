@@ -2,6 +2,7 @@
 
 import { useState, useCallback, useEffect } from 'react';
 import { ReactCompareSlider, ReactCompareSliderImage } from 'react-compare-slider';
+import { getGuestRemaining, getGuestUsageCount, incrementGuestUsage } from '@/lib/usage';
 
 type State = 'idle' | 'loading' | 'done' | 'error';
 
@@ -9,6 +10,45 @@ interface User {
   email: string;
   name: string;
   avatar_url: string;
+}
+
+const GUEST_LIMIT = 3;
+
+// Limit-reached modal
+function LimitModal({
+  onClose,
+  limit,
+}: {
+  onClose: () => void;
+  limit: number;
+}) {
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50">
+      <div className="bg-white rounded-2xl p-8 max-w-sm w-full mx-4 shadow-xl text-center">
+        <div className="w-14 h-14 bg-yellow-100 rounded-full flex items-center justify-center mx-auto mb-4">
+          <span className="text-2xl">⚡</span>
+        </div>
+        <h3 className="text-xl font-bold text-gray-900 mb-2">今日免费额度已用完</h3>
+        <p className="text-gray-500 mb-6">
+          您今天已使用 {limit} 次免费额度。登录后每天可免费使用 10 次！
+        </p>
+        <div className="flex flex-col gap-3">
+          <a
+            href="/api/auth/login"
+            className="w-full py-3 bg-indigo-600 text-white font-semibold rounded-xl hover:bg-indigo-700 transition-colors"
+          >
+            登录 / 注册 — 获得 10 次/天
+          </a>
+          <button
+            onClick={onClose}
+            className="w-full py-3 text-gray-500 hover:text-gray-700 text-sm"
+          >
+            稍后再说
+          </button>
+        </div>
+      </div>
+    </div>
+  );
 }
 
 export default function Home() {
@@ -19,12 +59,16 @@ export default function Home() {
   const [isDragging, setIsDragging] = useState(false);
   const [user, setUser] = useState<User | null>(null);
   const [googleLoaded, setGoogleLoaded] = useState(false);
+  const [showLimitModal, setShowLimitModal] = useState(false);
+  const [guestRemaining, setGuestRemaining] = useState(GUEST_LIMIT);
 
   useEffect(() => {
     const savedUser = localStorage.getItem('user');
     if (savedUser) {
       setUser(JSON.parse(savedUser));
     }
+    // Update guest remaining count on mount
+    setGuestRemaining(getGuestRemaining(GUEST_LIMIT));
 
     // Load Google SDK
     const script = document.createElement('script');
@@ -63,6 +107,15 @@ export default function Home() {
       return;
     }
 
+    // Pre-check guest limit before calling API
+    if (!user) {
+      const used = getGuestUsageCount();
+      if (used >= GUEST_LIMIT) {
+        setShowLimitModal(true);
+        return;
+      }
+    }
+
     // Show original preview
     const originalObjectUrl = URL.createObjectURL(file);
     setOriginalUrl(originalObjectUrl);
@@ -73,14 +126,39 @@ export default function Home() {
       const form = new FormData();
       form.append('image', file);
 
+      const headers: Record<string, string> = {};
+      if (user?.email) {
+        headers['x-user-email'] = user.email;
+      }
+
       const res = await fetch('/api/remove-bg', {
         method: 'POST',
+        headers,
         body: form,
       });
+
+      if (res.status === 429) {
+        // Daily limit reached
+        setShowLimitModal(true);
+        setState('idle');
+        setOriginalUrl(null);
+        return;
+      }
 
       if (!res.ok) {
         const data = await res.json();
         throw new Error(data.error || 'Processing failed');
+      }
+
+      // Update guest local counter
+      if (!user) {
+        incrementGuestUsage();
+        setGuestRemaining(getGuestRemaining(GUEST_LIMIT));
+      }
+
+      const remaining = res.headers.get('X-Usage-Remaining');
+      if (remaining !== null && !user) {
+        setGuestRemaining(parseInt(remaining, 10));
       }
 
       const blob = await res.blob();
@@ -103,7 +181,7 @@ export default function Home() {
     setIsDragging(false);
     const file = e.dataTransfer.files[0];
     if (file) processFile(file);
-  }, []);
+  }, [user]);
 
   const handleDragOver = (e: React.DragEvent) => {
     e.preventDefault();
@@ -129,6 +207,14 @@ export default function Home() {
 
   return (
     <div className="min-h-screen bg-gray-50 flex flex-col">
+      {/* Limit Modal */}
+      {showLimitModal && (
+        <LimitModal
+          limit={GUEST_LIMIT}
+          onClose={() => setShowLimitModal(false)}
+        />
+      )}
+
       {/* Header */}
       <header className="bg-white border-b border-gray-200 py-4 px-6">
         <div className="max-w-4xl mx-auto flex items-center justify-between">
@@ -209,6 +295,18 @@ export default function Home() {
           <p className="text-lg text-gray-500">
             Free, instant, no signup required. Upload your image and download the result.
           </p>
+          {/* Guest usage indicator */}
+          {!user && (
+            <div className="mt-4 inline-flex items-center gap-2 bg-white border border-gray-200 rounded-full px-4 py-1.5 text-sm text-gray-600 shadow-sm">
+              <span className={guestRemaining === 0 ? 'text-red-500' : guestRemaining <= 1 ? 'text-yellow-500' : 'text-green-500'}>●</span>
+              今日剩余免费次数：<strong>{guestRemaining}/{GUEST_LIMIT}</strong>
+              {guestRemaining === 0 && (
+                <a href="/api/auth/login" className="ml-1 text-indigo-600 font-medium hover:underline">
+                  登录获得 10 次 →
+                </a>
+              )}
+            </div>
+          )}
         </div>
 
         {/* Upload Area */}
