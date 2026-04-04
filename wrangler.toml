@@ -6,9 +6,6 @@ pages_build_output_dir = ".open-next/assets"
 compatibility_date = "2024-12-30"
 compatibility_flags = ["nodejs_compat"]
 
-# Worker 入口（OpenNext SSR）
-main = ".open-next/worker.js"
-
 # KV Namespace（增量缓存）
 [[kv_namespaces]]
 binding = "NEXT_CACHE_WORKERS_KV"
