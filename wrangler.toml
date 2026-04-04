@@ -5,11 +5,17 @@ name = "image-background-remover"
 compatibility_date = "2024-12-30"
 compatibility_flags = ["nodejs_compat"]
 
-# KV Namespace（用于 NextAuth session 和增量缓存）
-# 在 Cloudflare Dashboard 创建后填入 id
+# KV Namespace（增量缓存）
 [[kv_namespaces]]
 binding = "NEXT_CACHE_WORKERS_KV"
 id = "63b2bd01dade40e688e2a3d98899b042"
 
+# D1 数据库
+[[d1_databases]]
+binding = "DB"
+database_name = "image-background-remover"
+database_id = "待填入"
+
 [vars]
 PAYPAL_MODE = "sandbox"
+

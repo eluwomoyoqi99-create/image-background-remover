@@ -1,11 +1,12 @@
 // prisma/schema.prisma
 
 generator client {
-  provider = "prisma-client-js"
+  provider        = "prisma-client-js"
+  previewFeatures = ["driverAdapters"]
 }
 
 datasource db {
-  provider = "postgresql"
+  provider = "sqlite"
   url      = env("DATABASE_URL")
 }
 
@@ -16,8 +17,8 @@ model User {
   image                  String?
   credits                Int       @default(0)
   subscriptionId         String?
-  subscriptionStatus     SubStatus @default(NONE)
-  subscriptionPlan       SubPlan?
+  subscriptionStatus     String    @default("NONE")
+  subscriptionPlan       String?
   subscriptionPeriodEnd  DateTime?
   createdAt              DateTime  @default(now())
   updatedAt              DateTime  @updatedAt
@@ -29,15 +30,15 @@ model User {
 }
 
 model Order {
-  id              String      @id @default(cuid())
+  id              String   @id @default(cuid())
   userId          String
-  paypalOrderId   String      @unique
+  paypalOrderId   String   @unique
   paypalCaptureId String?
-  amount          Decimal     @db.Decimal(10, 2)
+  amount          Float
   credits         Int
-  status          OrderStatus @default(PENDING)
-  createdAt       DateTime    @default(now())
-  updatedAt       DateTime    @updatedAt
+  status          String   @default("PENDING")
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
 
   user User @relation(fields: [userId], references: [id])
 
@@ -45,36 +46,17 @@ model Order {
 }
 
 model Subscription {
-  id                   String    @id @default(cuid())
+  id                   String   @id @default(cuid())
   userId               String
-  paypalSubscriptionId String    @unique
-  plan                 SubPlan
-  status               SubStatus @default(ACTIVE)
+  paypalSubscriptionId String   @unique
+  plan                 String
+  status               String   @default("ACTIVE")
   periodStart          DateTime
   periodEnd            DateTime
-  createdAt            DateTime  @default(now())
-  updatedAt            DateTime  @updatedAt
+  createdAt            DateTime @default(now())
+  updatedAt            DateTime @updatedAt
 
   user User @relation(fields: [userId], references: [id])
 
   @@map("subscriptions")
-}
-
-enum OrderStatus {
-  PENDING
-  COMPLETED
-  FAILED
-  REFUNDED
-}
-
-enum SubStatus {
-  NONE
-  ACTIVE
-  CANCELLED
-  EXPIRED
-}
-
-enum SubPlan {
-  PRO_MONTHLY
-  PRO_YEARLY
 }
