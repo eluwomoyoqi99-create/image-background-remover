@@ -1,0 +1,80 @@
+// prisma/schema.prisma
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id                     String    @id @default(cuid())
+  email                  String    @unique
+  name                   String?
+  image                  String?
+  credits                Int       @default(0)
+  subscriptionId         String?
+  subscriptionStatus     SubStatus @default(NONE)
+  subscriptionPlan       SubPlan?
+  subscriptionPeriodEnd  DateTime?
+  createdAt              DateTime  @default(now())
+  updatedAt              DateTime  @updatedAt
+
+  orders        Order[]
+  subscriptions Subscription[]
+
+  @@map("users")
+}
+
+model Order {
+  id              String      @id @default(cuid())
+  userId          String
+  paypalOrderId   String      @unique
+  paypalCaptureId String?
+  amount          Decimal     @db.Decimal(10, 2)
+  credits         Int
+  status          OrderStatus @default(PENDING)
+  createdAt       DateTime    @default(now())
+  updatedAt       DateTime    @updatedAt
+
+  user User @relation(fields: [userId], references: [id])
+
+  @@map("orders")
+}
+
+model Subscription {
+  id                   String    @id @default(cuid())
+  userId               String
+  paypalSubscriptionId String    @unique
+  plan                 SubPlan
+  status               SubStatus @default(ACTIVE)
+  periodStart          DateTime
+  periodEnd            DateTime
+  createdAt            DateTime  @default(now())
+  updatedAt            DateTime  @updatedAt
+
+  user User @relation(fields: [userId], references: [id])
+
+  @@map("subscriptions")
+}
+
+enum OrderStatus {
+  PENDING
+  COMPLETED
+  FAILED
+  REFUNDED
+}
+
+enum SubStatus {
+  NONE
+  ACTIVE
+  CANCELLED
+  EXPIRED
+}
+
+enum SubPlan {
+  PRO_MONTHLY
+  PRO_YEARLY
+}
