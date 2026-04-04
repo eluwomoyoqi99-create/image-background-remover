@@ -1,0 +1,15 @@
+# Cloudflare Pages 部署配置
+# https://developers.cloudflare.com/pages/framework-guides/nextjs/
+
+name = "image-background-remover"
+compatibility_date = "2024-12-30"
+compatibility_flags = ["nodejs_compat"]
+
+# KV Namespace（用于 NextAuth session 和增量缓存）
+# 在 Cloudflare Dashboard 创建后填入 id
+[[kv_namespaces]]
+binding = "NEXT_CACHE_WORKERS_KV"
+id = "your-kv-namespace-id"
+
+[vars]
+PAYPAL_MODE = "sandbox"
