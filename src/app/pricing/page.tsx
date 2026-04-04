@@ -1,6 +1,14 @@
 'use client';
 
+import { useSession } from 'next-auth/react';
+import { useRouter } from 'next/navigation';
+import { useState } from 'react';
+
 export default function PricingPage() {
+  const { data: session } = useSession();
+  const router = useRouter();
+  const [loading, setLoading] = useState<string | null>(null);
+
   const plans = [
     {
       name: "访客",
@@ -14,7 +22,8 @@ export default function PricingPage() {
       ],
       cta: "开始使用",
       href: "/",
-      highlight: false
+      highlight: false,
+      planType: null
     },
     {
       name: "免费用户",
@@ -28,7 +37,8 @@ export default function PricingPage() {
       ],
       cta: "免费注册",
       href: "/",
-      highlight: false
+      highlight: false,
+      planType: null
     },
     {
       name: "Pro",
@@ -45,9 +55,35 @@ export default function PricingPage() {
       ],
       cta: "立即升级",
       href: "#",
-      highlight: true
+      highlight: true,
+      planType: "pro_monthly"
     }
   ];
+
+  const handleSubscribe = async (planType: string, label: string) => {
+    if (!session) {
+      router.push('/api/auth/signin');
+      return;
+    }
+    setLoading(planType);
+    try {
+      const res = await fetch('/api/subscription/create', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ planType }),
+      });
+      const data = await res.json();
+      if (data.approveUrl) {
+        window.location.href = data.approveUrl;
+      } else {
+        alert('创建订阅失败，请重试');
+      }
+    } catch {
+      alert('网络错误，请重试');
+    } finally {
+      setLoading(null);
+    }
+  };
 
   return (
     <div className="min-h-screen bg-gray-50">
@@ -98,16 +134,31 @@ export default function PricingPage() {
                   </li>
                 ))}
               </ul>
-              <a
-                href={plan.href}
-                className={`block w-full py-3 px-6 rounded-xl text-center font-semibold transition-colors ${
-                  plan.highlight
-                    ? 'bg-indigo-600 text-white hover:bg-indigo-700'
-                    : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
-                }`}
-              >
-                {plan.cta}
-              </a>
+
+              {plan.planType ? (
+                <button
+                  onClick={() => handleSubscribe(plan.planType!, plan.cta)}
+                  disabled={loading === plan.planType}
+                  className={`block w-full py-3 px-6 rounded-xl text-center font-semibold transition-colors ${
+                    plan.highlight
+                      ? 'bg-indigo-600 text-white hover:bg-indigo-700 disabled:opacity-60'
+                      : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                  }`}
+                >
+                  {loading === plan.planType ? '跳转中...' : plan.cta}
+                </button>
+              ) : (
+                <a
+                  href={plan.href}
+                  className={`block w-full py-3 px-6 rounded-xl text-center font-semibold transition-colors ${
+                    plan.highlight
+                      ? 'bg-indigo-600 text-white hover:bg-indigo-700'
+                      : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                  }`}
+                >
+                  {plan.cta}
+                </a>
+              )}
             </div>
           ))}
         </div>
@@ -121,8 +172,12 @@ export default function PricingPage() {
             $79.99 <span className="text-lg text-gray-500 line-through">$119.88</span>
           </p>
           <p className="text-sm text-gray-500 mb-6">相当于每月仅需 $6.67</p>
-          <button className="bg-indigo-600 text-white px-8 py-3 rounded-xl font-semibold hover:bg-indigo-700 transition-colors">
-            选择年付方案
+          <button
+            onClick={() => handleSubscribe('pro_yearly', '选择年付方案')}
+            disabled={loading === 'pro_yearly'}
+            className="bg-indigo-600 text-white px-8 py-3 rounded-xl font-semibold hover:bg-indigo-700 transition-colors disabled:opacity-60"
+          >
+            {loading === 'pro_yearly' ? '跳转中...' : '选择年付方案'}
           </button>
         </div>
       </main>
