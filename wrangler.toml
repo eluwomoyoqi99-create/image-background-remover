@@ -9,7 +9,7 @@ compatibility_flags = ["nodejs_compat"]
 # 在 Cloudflare Dashboard 创建后填入 id
 [[kv_namespaces]]
 binding = "NEXT_CACHE_WORKERS_KV"
-id = "your-kv-namespace-id"
+id = "63b2bd01dade40e688e2a3d98899b042"
 
 [vars]
 PAYPAL_MODE = "sandbox"
