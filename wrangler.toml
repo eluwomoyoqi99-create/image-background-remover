@@ -1,10 +1,18 @@
-# Cloudflare Pages 部署配置
-# https://developers.cloudflare.com/pages/framework-guides/nextjs/
+# Cloudflare Workers + Static Assets 部署配置
+# OpenNext for Cloudflare 需要部署到 Workers，不是 Pages
+# https://opennext.js.org/cloudflare/get-started
 
 name = "image-background-remover"
-pages_build_output_dir = ".open-next/assets"
 compatibility_date = "2024-12-30"
 compatibility_flags = ["nodejs_compat"]
+
+# Worker 入口（由 opennextjs-cloudflare build 生成）
+main = ".open-next/worker.js"
+
+# 静态资源（由 Worker 托管）
+[assets]
+directory = ".open-next/assets"
+binding = "ASSETS"
 
 # KV Namespace（增量缓存）
 [[kv_namespaces]]
@@ -19,3 +27,4 @@ database_id = "45a57c5c-600a-483d-8a7b-28d44892d65b"
 
 [vars]
 PAYPAL_MODE = "sandbox"
+NEXTAUTH_URL = "https://image-background-remover.eluwomoyoqi99.workers.dev"
