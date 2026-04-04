@@ -1,8 +1,7 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
-  // 移除 output: 'export'，改为服务端渲染模式
-  // 原因：接入 API Routes（PayPal 支付、NextAuth、Webhook）需要 Node.js 运行时
-  // Cloudflare Pages 请改用 @cloudflare/next-on-pages 适配器
+  // SSR 模式，支持 API Routes（PayPal 支付、NextAuth、Webhook）
+  // 由 @opennextjs/cloudflare 适配到 Cloudflare Pages
   images: {
     unoptimized: true,
   },
