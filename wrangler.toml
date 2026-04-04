@@ -14,7 +14,7 @@ id = "63b2bd01dade40e688e2a3d98899b042"
 [[d1_databases]]
 binding = "DB"
 database_name = "image-background-remover"
-database_id = "待填入"
+database_id = "45a57c5c-600a-483d-8a7b-28d44892d65b"
 
 [vars]
 PAYPAL_MODE = "sandbox"
